@@ -1,0 +1,535 @@
+---
+title: "Random variables：確率変数"
+author: "2020年 最高学部 データサイエンス"
+date: "yyyy/mm/dd"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    toc_depth: 2
+    number_section: true
+  always_allow_html: yes
+header-includes: 
+  - \usepackage{bookmark} 
+  - \usepackage{xltxtra} 
+  - \usepackage{zxjatype} 
+  - \usepackage[ipa]{zxjafont} 
+  - \usepackage{mathspec}
+  - \usepackage{amsthm}
+  - \usepackage{indentfirst} # first paragraphのインデントを有効化（英文はインデントが不要のため）
+  - \parindent = 1em         # インデント（字下げ）を1文字に設定
+  - \usepackage{float} # 図の位置指定（fig.pos）をする場合使う
+  - \usepackage{bm}
+
+---
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{assumption}{Assumption}
+
+```{r, message=FALSE, warning=FALSE, error=FALSE}
+require(tidyverse)
+require(gridExtra)
+require(ggthemes)
+```
+
+
+# 確率変数：Random vairbales  
+統計学とは，データから何らかの情報を抽出する営みである．ここでいう情報とはデータに含まれるが，本質的には知り得ない情報である．確率変数とはある特定の数学的構造を持つ変数であり，その分布によって特徴付けられる．確率変数は観測するたびに値が異なる，取りうる値は確率的に決まる．未来にとる値を正確に予測することは不可能であるが，確率を用いてどの様な値を取りうるのかについて言及することはできる．
+
+ここでは確率変数に関する数理的な基礎と有用なポイントについて概観する．
+
+# 累積分布関数：Cumlative distribution function    
+確率変数（r.v.）$X$の累積分布関数（c.d.f.）$F(x)$は次の様に表される．
+
+$$
+F(x) = {\rm Pr}(X \leq x)
+$$
+
+累積分布関数$F(x)$の値は$X$が$x$以下の値をとる確率に等しい．ここでは
+
+$$
+\begin{aligned}
+F(-\infty) &= 0 \\
+F(\infty) &= 1
+\end{aligned}
+\tag{1.01}
+$$
+
+であり，$F(x)$は単調な関数である．  
+
+ここで，$F(x)$が連続かつ$[0,1]$で一様分布であるとしよう．$[0,1]$で一様な分布とは，$0$から$1$の間の値全てに同じ確率が割り当てられているような分布である．この様な分布の累積分布関数は次の様に変形できる．
+
+$$
+\begin{aligned}
+{\rm Pr}(X \leq x) &= {\rm Pr}\left[ F(X) \leq F(x) \right] = F(x) \\ &\Rightarrow {\rm Pr}\left[ F(X) \leq u \right] = u
+\end{aligned}
+$$
+
+$X$よりも$x$の方が大きいのであれば，$X$以下の値をとる確率よりも$x$以下の値をとる確率の方が大きくなる．下図の通り，$[0,1]$上の一様分布のc.d.fの累積分布関数は$[0,1]$で$y=x$の直線となる．故に，$F(X)$の値が$u$以下となる確率は$u$と等しい．ただし$0\leq u \leq 1$である．
+
+
+```{r, fig1, fig.align="center", fig.height=3, fig.width=5}
+data.frame(
+  x = c(seq(-1,0,0.001),seq(0,1,0.001), seq(1,2,0.001)),
+  y = c(rep(0,1001),qunif(p=seq(0,1,0.001), min=0, max=1), rep(1,1001))
+) %>% 
+  ggplot(aes(x=x,y=y)) + 
+  geom_line() +
+  ggthemes::theme_economist()
+```
+
+次に，このc.d.f.の逆関数$F^-(u)$を次の様に定義する．
+
+$$
+F^-(u) = \min(x|F(x) \geq u)
+$$
+
+この形は，$F$が連続である場合によく用いられる形である．$F^-$は$X$の分位点関数と呼ばれる．いま，$U$が$[0,1]$上の一様分布に従うとする．この時，$F^-(U)$はc.d.fが$F$であるような$X$の分布と一致する．
+
+
+$p \in [0,1]$とする．このとき$X$の$p-$分位点(p-quantile)とは，$X$がある値以下の値をとる確率$p$を意味する．つまり$F^-(p)$である．分位点は非常に有用で，あるデータ$x_1,x_2,\ldots,x_n$が与えられた時，小さい順に並び替えて各値にたいして全体の下位何%であるかを計算することで観測データから$F^-$の形を推測することができる．これらを，理論的な分位点$F^-\{(i-0.5)/n\}()$と比較したquantile-quantile plot（QQプロット）を見ることで理論と実測がどの程度一致しているのかを視覚的に捉えることもできる．QQプロットでは，直線が取りうるべき値となる．
+
+以下に例を示す．まず`x_from_unif`という変数には$[0,1]$上の一様分布から生成した値を，`x_from_norm`には平均0，分散1の正規分布から生成した値を保存する．次に，理論的に（仮定的に）データが従う分布を平均0，分散1の正規分布とする．つまり，`x_from_unif`は理論とは違う分布に従い，`x_from_norm`は理論と同じ分布に従うというケースにおけるQQプロットの違いを見る．
+
+```{r}
+# fix random seed
+set.seed(77)
+
+# generate random samples
+x_from_unif <- runif(n=1000, min=-1, max=1)
+x_from_norm <- rnorm(n=1000, mean=0, sd=1)
+
+# quantiles for plot
+qs <- seq(0.005,0.995,0.01)
+```
+
+
+```{r, fig2, fig.align="center", fig.height=3, fig.width=6}
+# make p1 plot
+# calculate observation and theoretical quantiles
+x_q <- quantile(x_from_unif, probs = qs)
+t_q <- qnorm(p=qs, mean = 0, sd = 1)
+
+data.frame(x = x_q,y = t_q) %>% 
+  ggplot(aes(x=x, y=y)) +geom_point() + 
+  geom_abline(slope=1, intercept=0, color="red") + 
+  geom_vline(xintercept = 0, linetype=2) + 
+  geom_hline(yintercept = 0, linetype=2) + 
+  xlim(-3, 3) + ylim(-3,3) + 
+  ggtitle(label = "QQ-plot", subtitle = "uniform and normal") + 
+  ggthemes::theme_economist() -> p1
+
+# make p2 plot
+x_q <- quantile(x_from_norm, probs = qs)
+t_q <- qnorm(p=qs, mean = 0, sd = 1)
+
+df <- data.frame(x = x_q,y = t_q) %>% 
+  ggplot(aes(x=x, y=y)) +
+  geom_point() + 
+  geom_abline(slope=1, intercept=0, color="red") + 
+  geom_vline(xintercept = 0, linetype=2) + 
+  geom_hline(yintercept = 0, linetype=2) + 
+  xlim(-3, 3) + ylim(-3,3) + 
+  ggtitle(label = "", subtitle = "normal vs normal") + 
+  ggthemes::theme_economist() -> p2  
+
+# show multiple plots
+grid.arrange(p1, p2, ncol = 2)
+```
+
+
+確認できる様に，一様分布と正規分布との比較では直線に乗らない部分が多く，正規分布同士の比較ではほぼ直線上に乗っていることがわかる．
+
+# 確率関数と確率密度関数：Probability (density) functions  
+多くの統計モデルは累積分布関数と同様に，あるいはそれ以上に「確率変数がある値をとる確率」を調べるのに役立つ．様々な統計モデルを区別するためにまず用いることができるのは確率変数が取りうる値が離散（整数など）なのか連続なのか（実数直線上の連続した区間）である．
+
+離散型確率変数の時，$X$に対して確率関数(probability function)$f(x)$は次の様に表される．
+
+$$
+f(x) = {\rm Pr}(X = x)
+$$
+
+ここで，$0 \leq f(x) \leq 1$であり，$\sum_i f(x_i) = 1$である．$\sum_i$は'summation'の意味であり添字に該当する変数を全て足しあげる操作を意味する．
+
+連続型確率変数の場合，$X$がある特定の値をとるという考え方をすると，その確率は限りなく0に近く．たとえ区間が$[0,1]$であってもその間には無限個の実数が存在するからである．そこで，確率密度関数(probability density function)は確率を考える対象に幅を持たせる．シンプルに考えれば連続型確率変数$X$が$[0,1]$区間に含まれる確率は1（必ずそうなる）であるし，全ての値の確率が等しいのであれば$(0.5,1]$に含まれる値をとる確率は$1/2$程度であるべきである．すなわち${\rm Pr}(x - \Delta/2 < X < x + \Delta/2) \simeq f(x)$となる．ここである定数$a \leq b$を考えて
+
+$$
+  {\rm Pr}(a \leq X \leq b) = \int_a^b f(x) dx
+$$
+
+とも表される．すなわち，確率密度関数の面積と確率を対応させた問題に置き換えるのである．確率として扱うために$f(x)$については$f(x) \geq 0$かつ$\int_{-\infty}^{\infty} f(x)dx = 1$を満たす必要がある．
+
+# 確率変数：Random vectors
+通常の統計解析で扱う変数が1つということはほとんどなく，その場合も確率(密度)関数も多変数関数となる．可視化のしやすさも踏まえて２変数$X, Y$の場合を考える．
+
+$X, Y$の同時確率密度関数(joint probability density function)を次の様に考える．$\Omega$をある$x-y$平面上の空間とする．
+
+$$
+{\rm Pr}\left[ (X,Y) \in \Omega \right] = \int \int_{\Omega} f(x,y)dxdy
+$$
+
+つまり，$f(x,y)$は$x-y$平面上の空間に確率を対応させる．
+
+次のような関数を例にして見てみよう．
+$$
+\begin{aligned}
+f(x,y) = 
+\begin{cases}
+  x + \frac{3}{2}y^2, \  &0 < x < 1 \& 0 < y < 1 \\
+  0, \ &\rm otherwise
+\end{cases}
+\end{aligned}
+$$
+
+この関数をRで実装したのが下記のコードである．`if(...)`で$0<x,y<1$という条件を判定している．
+
+```{r}
+f <- function(x, y){
+  if({0<x&x<1}&{0<y&y<1}){
+    return(x + (3/2)*y^2)
+  }else{
+    return(0)
+  }
+}
+```
+
+$x,y$をそれぞれ横軸にとり，$f(x,y)$の値で等高線を引いたのが次の図である．
+```{r}
+df <- expand_grid(x=seq(-0.1, 1.1, 0.005), y=seq(-0.1, 1.1, 0.005)) %>% 
+  mutate(z = map2_dbl(.x=x, .y=y, f)) %>% 
+  ggplot(aes(x, y, z=z)) + 
+  geom_contour_filled() -> g
+
+plot(g)
+```
+
+濃い紫色は0，黄色になるにつれ$f(x,y)$の値が大きくなっていることを示している．つまり$f(x,y)$とは$x,y$ともに$0<x,y<1$の範囲では入力が大きくになるにつれ出力も大きくなる様な関数であることがわかる．
+
+
+# 周辺分布：Marginal distribution  
+前節につづき$X,Y$のに２変数のケースを考えていく．$X$または$Y$の確率密度関数を考えたい場合，$f(x,y)$から各変数に着目した確率密度関数を得ることができる．これを$X$または$Y$の周辺分布(Marginal distribution)と呼ぶ．考え方としては，$-\infty<Y<\infty$が与えられたもとでの$X$の確率密度関数の形を考えれば良い．すなわち，
+
+$$
+f(x) = \int_{-\infty}^{\infty} f(x,y) dy
+$$
+となる．
+
+# 条件付き分布：Conditional distribution  
+例えば，$Y=y_0$という状況を考えよう．この時$X$の分布はどの様になるだろうか．この状況を$f(x|Y=y_0)$と表す．この時，直感的には下記の様に元の$f(x, y=y_0)$に$k$倍されたような値になると推測される．
+$$
+f(x|Y=y_0) = kf(x, y_0)
+$$
+
+$f(x|y)$もまた確率密度関数であることから，全区間での積分は$1$にならなければいけない．すなわち，
+
+$$
+k \int_{-\infty}^{\infty} f(x, y_0) dx = 1 \Rightarrow kf(y_0) = 1 \Rightarrow k = \frac{1}{f(y_0)}
+$$
+となる．$f(y_0)$は$y$の周辺分布の確率密度関数である．これより，次のことがわかる．
+
+\begin{definition}
+  $X,Y$をそれぞれ連続型確率変数とし，$f(x,y)$を$X,Y$の同時分布の密度関数とする．この時$Y=y_0$が与えられたもとでの$X$の条件付き分布は次の様に定義される．
+$$
+  f(x|Y=y_0) = \frac{f(x,y_0)}{y_0}
+$$
+ここで，$f(y_0) > 0$とする．
+
+\end{definition}
+
+条件付き分布のこれまでの議論は$X$と$Y$を入れ替えても同様であることに注意されたい．数式変形をすれば，同時分布と条件付き分布の関係は$f(x,y) = f(x|y)f(y)$と表せる．さらに，3変数の場合，次の様に関係を表すことができる．
+
+$$
+\begin{aligned}
+&1. \  f(x, z|y) = f(x|z,y)f(z|y) \\
+&2. \  f(x, z, y) = f(x|z,y)f(z|y)f(y) \\
+&3. \  f(x,z,y) = f(x|z,y)f(z,y)
+\end{aligned}
+$$
+
+一般には変数の数が増えた場合には２変数の場合の性質が全て拡張できるわけではないことに注意されたい．
+
+# ベイズの定理：Bayes theorem  
+先に出てきた次の式
+
+$$
+f(x,y) = f(x|y)f(y) = f(y|x)f(x)
+$$
+より以下の式が成り立つ．
+
+$$
+f(x|y) = \frac{f(y|x)f(x)}{f(y)}
+$$
+これをベイズの定理と呼ぶ．ここから導出される統計モデルについては二章と六章で触れる．
+
+# 独立と条件付き独立：Independence and conditional independence  
+確率変数$X, Y$に対して$f(x|y)$が与えられている時，もし$f(x|y)$の値が$y$の値によらずに決定する時，$x$は$y$とは独立であるという．すなわち
+
+$$
+\begin{aligned}
+f(x) &= \int_{-\infty}^{\infty} f(x,y)dy \\  
+      &= \int_{-\infty}^{\infty} f(x|y)f(y)dy \\
+      &= f(x|y)\int_{-\infty}^{\infty} f(y)dy = f(x|y)
+\end{aligned}
+$$
+
+を意味する．ここから，
+
+$$
+f(x,y) = f(x|y) f(y) = f(x)f(y)
+$$
+
+が導かれる．つまり，$X,Y$が互いに独立ならば$f(x,y) = f(x)f(y)$が成り立つ．明らかに，$f(x,y) = f(x)f(y)$が成り立てば，$f(x|y)=f(x)$となる．
+確率変数の実現値として得られた各値が独立であるような場合を$\rm i.i.d$と表す．これはindependent identically distributedの略称である．
+
+多くの応用においては，観測値が$\rm i.i.d$ではないことも多い．しかし，ある条件のもとでの独立を考えることで問題に取り組みやすくすることができる．それが，条件付き独立という概念である．
+
+いま，確率変数の列$X_1, X_2, \ldots, X_n$と${\bf X}_{-i} = (X_1, \ldots, X_{i-1}, X_{x+1},\ldots,X_n)^{\rm T}$を考える．${\bf X}_{-i}$が定義の通り列$X_1, X_2, \ldots, X_n$から$i$番目の要素のみ除いた様なベクトルである．マルコフ連鎖と呼ばれる性質はこの表現を用いて次の様に表せる．
+
+$$
+f(x_i|{\bf x}_{-i}) = f(x_i|x_{i-1})
+$$
+すなわち，$i$番目の値が$i-1$番目の値によって特徴付けられるような状況を表している．また，$i$番目の値に影響を与えるのはあくまでも$i-1$番目の値のみであり，他とは無関係という仮定をおけば，
+$$
+\begin{aligned}
+f({\bf x}) &= f(x_n|{\bf x_{-n}})f({\bf x}_n)  \\
+&= f(x_n|x_{n-1})f({\bf x_{-n}}) \\
+&= f(x_n|x_{n-1})f(x_{n-1}|{\bf x_{-{(n-1)}}})f({\bf x_{-(n-1)}}) \\
+&= f(x_n|x_{n-1})f(x_{n-1}|x_{n-2})f({\bf x_{-(n-1)}}) \\
+&= \ldots \\
+&= \prod_{i=2}^{n}f(x_i|x_{i-1})f(x_1)
+\end{aligned}
+$$
+
+が得られる．こちらの式の方が計算資源が少なくて済む．
+
+# 期待値と分散：Mean and variance  
+確率変数の分布について完璧に把握できるに越したことはないが，多くの場合期待値と分散を調べることで分布の概要をつかむことができる．いま$X$を確率変数としてその確率密度関数を$f(x)$とする．この時，期待値$E(X)$は次の様に定義される．
+
+$$
+E(X) = \int_{-\infty}^{\infty} xf(x)dx
+$$
+
+積分をする際にそれぞれ$x$を重みとしてかけている．すなわち，実現値に対してその確率で重みづけした平均である．
+
+ある確率変数の関数$g$についての期待値は次の様になる．
+
+$$
+E[g(x)] = \int_{-\infty}^{\infty} g(x)f(x)dx
+$$
+
+いま，$\mu = E(X)$として，$g = (X-\mu)^2$とする．$g$は平均と確率変数$X$との差の二乗である．分散はまさにこの様に定義されるもので，
+
+$$
+{\rm var}(X) = E[(X-\mu)^2]
+$$
+
+となる．分散とは分布がどのように広がっているかを示す指標の１つである．計算上はシンプルであるがその意味の解釈性は高くない．もとの値とのスケールを合わせるよう正の平方根をとった標準偏差が用いられることも多い．
+
+$$
+{\rm sd}(X) = \sqrt{{\rm var}(X)}
+$$
+
+# 平均と分散の線形変換：Mean and variance of liniear transformations  
+$$
+\begin{aligned}
+{\rm var}(a+bX) &= E[((a+bX) - E(a+bX))^2] \\
+&= E[(a + bX - a - b \mu)^2] \\
+&= E[(b^2(X-\mu)^2)] \\ 
+&= b^2 E[(X-\mu)^2] \\
+&= b^2 {\rm var}(X)
+\end{aligned}
+$$
+
+$X,Y$を確率変数として，$E(X+Y) = E(X) + E(Y)$が成り立つ．これを確かめるために$X,Y$の同時密度$f(x,y)$を考えると
+
+$$
+\begin{aligned}
+E(X+Y) &= \int (x+y) f(x,y) dxdy \\
+&= \int xf(x,y)dxdy + \int y f(x,y)dxdy \\
+&= E(X) + E(Y)
+\end{aligned}
+$$
+となる．
+
+ここでポイントなのは，$X,Y$どちらにも特定の分布を仮定していないことである．つまり，この性質は期待値と分散が存在すれば，確率分布の特徴によらず成り立つ．
+いま，$X,Y$が$\rm i.i.d$であるとすると，$E(XY)=E(X)E(Y)$が成り立つ．
+
+$$
+\begin{aligned}
+E(XY) &= \int xy f(x,y) dxdy \\
+&= \int x f(x) y f(y) dxdy \\
+&= \int x f(x) dx \int y f(y)dy \\
+&= E(X)E(Y)
+\end{aligned}
+$$
+
+この逆は，$X,Y$が共に正規分布に従う場合に成り立つ．
+
+分散については，独立な場合のみ期待値と同様にそれぞれの確率変数の分散の和と一致する．
+一般の形について議論する前にまず2つの確率変数の共分散について紹介する．
+
+$$
+\begin{aligned}
+{\rm cov}(X,Y) &= E[(X-\mu_x)(Y-\mu_y)] \\
+&= E(XY) - E(X)E(Y)
+\end{aligned}
+$$
+
+ここで，${\rm cov}(X,Y)$は$X,Y$の共分散を表す．また$\mu_x = E(X), \mu_y = E(Y)$である．$X=Y$とおくと明らかに${\rm cov} (X,X) = {\rm var}(X)$であるので，分散は共分散の特別な場合と考えることもできる．先ほどの期待値の議論で$X,Y$が独立な場合は$E(XY) = E(X)E(Y)$であることがわかっているので，$X,Y$が独立な場合は${\rm cov}(X,Y) = E(XY) - E(X)E(Y) = 0$となる．
+
+
+いま，${\bf A}, {\bf b}$をそれぞれ行列とベクトルとする．$\bf b$は有限な定数ベクトルで，$\bf A$と行数と同じ長さとする．次に，$\bf X$を確率変数ベクトルとする．このとき，
+
+$$
+E({\bf X}) = {\boldsymbol \mu}_{x} = [E(X_1), E(X_2), \ldots, E(X_n)]^T
+$$
+
+として，$E({\bf AX + b}) = {\bf A}E({\bf X} + {\bf b})$が成り立つ．
+
+確率変数ベクトルに対する分散共分散行列は次の様に定義される．
+
+$$
+\begin{aligned}
+{\bf \Sigma} = E[({\bf X}-{\boldsymbol \mu}_x)({\bf X} - {\boldsymbol \mu}_x)^T] \\
+{\rm where} \  \Sigma_{ij} = {\rm cov}(X_i, X_j)
+\end{aligned}
+$$
+共分散は順序によらないので$\bf \Sigma$は対称行列である．また，次が成り立つ．
+
+$$
+{\bf \Sigma}_{AX+b} = {\bf A \Sigma A}^T
+$$
+
+この性質については次のように示される．
+
+$$
+\begin{aligned}
+{\bf \Sigma}_{AX+b} &= E[({\bf AX + b - A}{\boldsymbol \mu}_{x} - {\bf b})({\bf AX + b - A}{\boldsymbol \mu}_x - {\bf b})^T] \\
+&= E[({\bf AX - A}{\boldsymbol \mu})({\bf AX - A}{\boldsymbol \mu}_x)^T] \\ 
+&= {\bf A}E[({\bf X} - {\boldsymbol \mu}_x)({\bf X} - {\boldsymbol \mu}_x)^T]{\bf A}^T \\
+&= {\bf A \Sigma A}^T
+\end{aligned}
+$$
+また，$\bf a$を実数の定数ベクトルとすると，${\rm var}({\bf a}^T{\bf X}) \geq 0$が成り立つ．
+
+# 多次元正規分布：The multivariate normal distribution  
+これは正規分布の多次元拡張版であり，統計において非常に重要な分布である．
+
+\begin{theorem}
+$n$個の$\rm i.i.d$かつそれぞれ平均0, 分散1の正規分布に従う確率変数の集合を考える．すなわち各要素は$Z_i \sim N(0,1)$であり，そのベクトルを$\bf Z$と置く．この時，$\bf Z$の分散共分散行列をは${\bf I}_n$であり，$Z$の期待値は$E({\bf Z}) = {\bf 0}$である．  
+いま，${\bf B}$を$m \times n$の実数で有限な値を持つ行列として，${\boldsymbol \mu}$を長さ$m$の有限な実ベクトルとする．この時，ベクトル${\bf X} = {\bf B}{\bf Z} + {\boldsymbol \mu}$は多次元正規分布に従うという．$E({\bf X}) = {\boldsymbol \mu}$，${\rm var}({\bf X}) = {\bf \Sigma} = {\bf B}{\bf B}^T$となる．これを次のように表す．
+
+$$
+  {\bf X} \sim ({\boldsymbol \mu}, {\bf \Sigma}).
+$$
+\end{theorem}
+
+後に紹介する定理のいくつかはこの分布を仮定している。この分布のp.d.fは次の定義される．
+
+$$
+\begin{aligned}
+f_{\rm x}({\bf x}) = \frac{1}{\sqrt{(2\pi)^m |{\bf \Sigma}|}} e^{\frac{1}{2} ({\bf x - {\boldsymbol \mu}})^T {\bf \Sigma}^{-1} ({\bf x} - {\boldsymbol \mu})}, \  {\rm for} \  {\bf x} \in {\mathbb R}^m
+\end{aligned}
+$$
+
+ここで$\bf \Sigma$はサイズ$m$のフルランクの行列である．また，非負とする．
+
+# 多次元t分布：A multivariate t distribution  
+前節で導入した多次元正規分布では$n$個のそれぞれ$N(0,1)$に従う独立な確率変数を考えたが，ここでは従う分布を$t_k$とおく．すなわち，$T_i \sim t_k$とする．このとき，これらの$n$個の確率変数を要素にもつ確率変数ベクトルが従う多次元の$t$分布，$t_k({\boldsymbol \mu}, {\bf \Sigma})$を考えることができる．正規分布よりも裾の重い分布を扱いたい場合，多次元t分布はシミュレーションなどで有用である．多次元正規分布との違いの１つに，一般には周辺分布が$t$分布にはならないことがあげられる．
+
+# 正規分布と線形変換：Linear transformations of normal random vectors  
+$n$次元の多変量正規分布に従う確率変数${\bf X} \sim N({\boldsymbol \mu}, {\bf \Sigma})$と有限な定数を要素にもつ行列${\bf A}$を考える．このとき，多変量正規分布の定義より
+
+$$
+\begin{aligned}
+{\bf A}{\bf X} \sim N({\bf A}{\boldsymbol \mu}, {\bf A}{\bf \Sigma}{\bf A}^T).
+\end{aligned}
+$$
+
+となることがわかる．${\bf X} = {\bf B}{\bf Z} + {\boldsymbol \mu}$と表せることから，${\bf AX = ABZ + A}{\boldsymbol \mu}$とできることがわかる．また先の議論と同様に${\bf \Sigma = BB}^T$とおけば，${\rm var}({\bf AX}) = {\bf A\Sigma A}^T$となる．
+
+特殊なケースとして行列ではなくベクトル$\bf a$として，
+
+$$
+\begin{aligned}
+{\bf a}^T{\bf X} \sim N({\bf a}^T{\boldsymbol \mu}, {\bf a}^T{\bf \Sigma a}).
+\end{aligned}
+$$
+となる．これより，$\bf a$を$j$番目の要素だけ1で他を0であるようなベクトルとすると，結果は$X_j \sim N(\mu_j, \Sigma_{jj})$と一致する．ここで$\sigma^2_j = \Sigma_{jj}$である．$j$番目については特に制約は置いていないため，$\bf X$が多変量正規分布に従う時，任意の$X_j$での周辺分布は単変量の正規分布に従うことがわかる．より一般的には，$\bf X$の部分ベクトル$\bf X'$も多変量正規分布に従う．
+
+ただし，この逆は一般には成り立たない．しかし，${\bf a}^T {\bf X}$が多変量正規分布に従うならば，$\bf X$は多変量正規分布に従うことは示される．
+
+# 多変量正規分布の条件付き分布：Multivariate normal conditional distributions  
+まず，${\bf Z, X}$をそれぞれ確率変数ベクトルとし，多変量正規分布に従うとする．この時これらの同時分布を考える．この同時分布の分散共分散行列は次のように分割して考えることができる．
+
+$$
+\begin{aligned}
+{\bf \Sigma} = \begin{bmatrix} {\bf \Sigma}_{z} & {\bf \Sigma}_{zx} \\ {\bf \Sigma}_{xz} & {\bf \Sigma}_{x} \end{bmatrix},
+\end{aligned}
+$$
+
+そして，
+
+$$
+\begin{aligned}
+{\bf X|z} \sim N({\boldsymbol \mu}_x + {\bf \Sigma}_{xz}{\bf \Sigma}_{z}^{-1}({\bf z} - {\boldsymbol \mu}_z), {\bf \Sigma}_{x} - {\bf \Sigma}_{xz} {\bf \Sigma}_{z}^{-1} {\bf \Sigma}_{zx}).
+\end{aligned}
+$$
+
+が成り立つ．この証明では，対象な分割行列の逆行列の性質を利用する．
+
+$$
+\begin{aligned}
+  \begin{bmatrix} {\bf A} & {\bf C} \\ {\bf C}^T & {\bf B} \end{bmatrix} = 
+  \begin{bmatrix}
+    {\bf A}^{-1} + {\bf A}^{-1}{\bf C}{\bf D}^{-1}{\bf C}^T {\bf A}^{-1} & -{\bf A}^{-1}{\bf C}{\bf D}^{-1} \\
+    -{\bf D}^{-1} {\bf C}^T {\bf A}^{-1}  & {\bf D}^{-1}
+  \end{bmatrix}
+\end{aligned}
+$$
+
+ここで${\bf D} = {\bf B} - {\bf C}^T {\bf A}^{-1} {\bf C}$とする．
+
+ここから，$\bf Z$が与えられたもとでの$\bf X$の条件付き分布を考える．まず${\bf Q} = {\bf \Sigma}_{x} - {\bf \Sigma}_{xz} {\bf \Sigma}_{z}^{-1} {\bf \Sigma}_{zx}, {\bf \tilde z} = {\bf z} - {\boldsymbol \mu}, {\bf \tilde x} = {\bf x} - {\boldsymbol \mu}_x$とする．また，定数として与えられている$z$に関する項を$z\ {\rm terms}$としてまとめると．
+
+$$
+\begin{aligned}
+f({\bf x|z}) &= f({\bf x, z}) / f({\bf z}) \\
+  & \propto \exp \left\{
+    -\frac{1}{2} \begin{bmatrix} {\bf \tilde z} \\ {\bf \tilde x} \end{bmatrix}^T 
+    \begin{bmatrix} 
+      {\bf \Sigma}_z^{-1} + {\bf \Sigma}_z^{-1} {\bf \Sigma}_{zx} {\bf Q}^{-1} {\bf \Sigma}_{xz} {\bf \Sigma}_z^{-1} & -{\bf \Sigma}_z^{-1} {\bf \Sigma}_{zx} {\bf Q}^{-1} \\
+      -{\bf Q}^{-1} {\bf \Sigma}_{xz} {\bf \Sigma}_z^{-1} & {\bf Q}^{-1}
+    \end{bmatrix}
+    \begin{bmatrix}
+      {\bf \tilde z} \\ {\bf \tilde x}
+    \end{bmatrix}
+  \right\} \\
+  & \propto \exp \left\{
+    - \frac{{\bf \tilde x} {\bf Q}^{-1} {\bf \tilde x}}{2} + {\bf \tilde x}^{T} {\bf Q}^{-1} {\bf \Sigma}_{xz} {\bf \Sigma}_z^{-1} {\bf \tilde z} + z \ {\rm term}
+  \right\} \\
+  & \propto \exp \left\{
+    -\frac{({\bf \tilde x} - {\bf \Sigma}_{xz} {\bf \Sigma}_z^{-1} {\bf \tilde z}){\bf Q}^{-1}({\bf \tilde x} - {\bf \Sigma}_{xz} {\bf \Sigma}_z^{-1} {\bf \tilde z})}{2} + {z \ \rm terms}
+  \right\} \\
+  & \propto \exp \left \{
+    -\frac{1}{2}\left [{\bf x} - {\boldsymbol \mu_x} - {\bf \Sigma}_{xz}{\bf \Sigma}_z^{-1}({\bf z} - {\boldsymbol \mu}_z) \right]{\bf Q}^{-1}\left [{\bf x} - {\boldsymbol \mu_x} - {\bf \Sigma}_{xz}{\bf \Sigma}_z^{-1}({\bf z} - {\boldsymbol \mu}_z) \right] + {z \  \rm terms}
+  \right\}
+\end{aligned}
+$$
+
+よって，これは平均${\boldsymbol \mu_x} + {\bf \Sigma}_{xz}{\bf \Sigma}_z^{-1}({\bf z} - {\boldsymbol \mu}_z)$で分散共分散行列が${\bf Q} = {\bf \Sigma}_z - {\bf \Sigma}_{xz} {\bf \Sigma}_z^{-1} {\bf \Sigma}_{zx}$である多変量正規分布とみなすことができる．
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

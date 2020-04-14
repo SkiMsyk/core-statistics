@@ -1,6 +1,6 @@
 ---
-title: "Random variables：確率変数"
-author: "2020年 最高学部 データサイエンス"
+title: "確率変数：Random variables"
+author: "Masayuki Sakai"
 date: "yyyy/mm/dd"
 output:
   pdf_document:
@@ -520,14 +520,252 @@ $$
 よって，これは平均${\boldsymbol \mu_x} + {\bf \Sigma}_{xz}{\bf \Sigma}_z^{-1}({\bf z} - {\boldsymbol \mu}_z)$で分散共分散行列が${\bf Q} = {\bf \Sigma}_z - {\bf \Sigma}_{xz} {\bf \Sigma}_z^{-1} {\bf \Sigma}_{zx}$である多変量正規分布とみなすことができる．
 
 
+# 確率変数の変数変換：Transformation of random variables  
+確率密度関数として$f_z$を持つような連続型の確率変数$Z$を考える．また，$X=g(Z)$であるような確率変数$X$を作る．ここで$g$は逆関数を持つと仮定する．このとき，$X$の累積分布関数は$Z$の情報から簡単に求めることができる．
+
+$$
+\begin{aligned}
+F_x(x) &= {\rm Pr}(X \le x) \\
+      &= \begin{cases}
+          {\rm Pr}\left[ g^{-1} (X) \le g^{-1}(x) \right] = {\rm Pr}\left[ Z \le g^{-1}(x) \right], &  g \  {\rm increasing} \\
+          {\rm Pr} \left[ g^{-1}(X) > g^{-1}(x) \right] = {\rm Pr}\left[ Z > g^{-1}(x) \right], &  g \  {\rm decreasing}
+         \end{cases} \\
+      &= \begin{cases} F_z[g^{-1}(x)], &  g\  {\rm increasing} \\
+        1-F_z[g^{-1}(x)], & g \  {\rm decreasing}
+      \end{cases}
+\end{aligned}
+$$
+
+$f_x$を求める際には$g$が単調増加か単調減少かで少し異なるので注意．これは以下のように求めることができる．
+
+$$
+\begin{aligned}
+f_x(x) &= F'_x(x) \\
+&= F'_z[g^{-1}(X)]\left| \frac{{\rm d}y}{{\rm d}x} \right| \\
+&= f_z[g^{-1}(x)] \left| \frac{{\rm d}y}{{\rm d}x} \right|.
+\end{aligned}
+$$
+
+もし，$g$がベクトル値関数の時，$\bf Z, X$が同じ長さのベクトルとすると，上記の式変換の結果は次のようになる．
+
+$$
+\begin{aligned}
+f_x({\bf x}) = f_z (g^{-1}({\bf x})) |{\bf J}|
+\end{aligned}
+$$
+
+ここで$\bf J$は$J_{ij} = \partial z_i / \partial x_j$であるような行列である（ヤコビアン）．もし$f_x, f_z$が離散型確率変数であるとするならば，$|\bf J|$の項は$\bf 1$となり，無視して良い．
+
+## 例  
+まず，${\bf} Z \sim N(\bf 0, I)$，$\bf B$を逆行列を持つ$n \times n$の行列とする．この時，$\bf X = BZ + \boldsymbol \mu$の確率密度関数を多変量正規分布の定義を元に導出してみよう．
+
+$\bf X$の分散共分散行列$\bf \Sigma$は${\bf B B}^T$である．また，${\bf Z} = {\bf B}^{-1}({\bf X} - {\boldsymbol \mu})$である．つまりこのとき，ヤコビアン$|\bf J|$は$|{\bf B}^{-1}|$と一致する．$\bf Z$の各要素$Z_i$同士は独立であるので，$\bf Z$の密度関数はそれぞれの要素の密度関数の積となり，
+
+$$
+  f({\bf z}) = \frac{1}{\sqrt{2 \pi}^n} \exp \left\{- \frac{{\bf z}^T {\bf z}}{2}  \right \}
+$$
+
+である．ここで先ほど紹介した変数変換の定理を用いれば，${\bf X}$の密度関数は
+
+$$
+\begin{aligned}
+f({\bf x}) &= \frac{|{\bf B}|^{-1}}{\sqrt{2 \pi}^n} \exp \left\{ -\frac{-({\bf x} - {\boldsymbol \mu})^T {\bf B}^{T}{\bf B}^{-1} ({\bf x} - {\boldsymbol \mu})}{2} \right\} \\
+&= \frac{1}{\sqrt{2 \pi}^n |{\bf \Sigma}|} \exp \left\{ -\frac{({\bf x}-{\boldsymbol \mu}^{T}) {\bf \Sigma}^{-1}  ({\bf x} - {\boldsymbol \mu})}{2} \right\}
+\end{aligned}
+$$
+
+となる．ここで逆行列と行列式の関係$|A^{-1}| = \frac{1}{|A|}$を用いた．
 
 
+# 積率母関数：Monent generating functions  
+$\rm p.d.f$や$\rm c.d.f.$は確率変数が従う分布を特徴付けるものであったが，ここでもう１つの分布を特徴付ける概念を紹介する．それが積率母関数(moment generating function：m.g.f.)である.これは
+
+$$
+M_X(s) = E(e^{sX})
+$$
+と表わされる．ここで$s$は実数である．$\rm m.g.f.$の$k$次の導関数の$s=0$での値を$k-th$モーメントと呼ぶ．また，モーメントは次の関係を持ち
+
+$$
+\begin{aligned}
+\left. \frac{{\rm d}^k M_X}{{\rm d}s^k} \right |_{s=0} = E(X^{k}).
+\end{aligned}
+$$
+
+$M_X(0) = 1, M'_X(0) = E(X), M''_{X}(0)=E(X^2)$が成り立つ．以下の性質は有用である．
+
+1. もし2つの確率変数$X,Y$にたいしてその積率母関数$M_X,M_Y$が一致する時，すなわち$M_X(s) = M_Y(s)$であれば，$X,Y$の分布は一致する．
+2. 2つの確率変数$X,Y$が互いに独立ならば，
+$$
+\begin{aligned}
+M_{X+Y}(s) &= E\left[ \exp(s(X+Y)) \right] \\
+&= E[e^{sX}e^{sY}] \\
+&= E(e^{sX}) E(e^{sY}) \\
+&= M_X(s) M_Y(s)
+\end{aligned}
+$$
+が成り立つ．
+3. $M_{a+bX}(s) = E(e^{as + bXs}) = e^{as} M_X(bs)$.
+
+# 中心極限定理：The central limit theorem  
+$X_i \overset{\text {i.i.d}}{\sim} N(\mu, \sigma^2), \  i = 1,2,\ldots,n$を考える．また${\bar X}_n = \sum_{i=1}^{n}X_i/n$とする．中心極限定理とは，この式において$\lim n \rightarrow \infty$とした時の$\bar X_n$の振る舞いについて述べたものである．すなわち
+
+$$
+\bar X_n \sim N(\mu, \sigma^2/n)
+$$
+
+が成り立つという定理である．直感的には，$X_n$の$\rm p.d.f.$，$f$を未知として，この$f$の対数をとった$l(\bar x_n) = \log f(\bar x_n)$についてのテイラー展開を考えたものである．$\hat x_n$周りでのテイラー展開
+
+$$
+\begin{aligned}
+f(\bar x) \simeq \exp \left\{ l(\hat x_n) + l''(\bar x_n - \hat x_n)^{2}/2 + l'''(\bar x_n - \hat x_n)^{3}/6 + \cdots \right\}
+\end{aligned}
+$$
+
+について$n\rightarrow \infty$のとき，$\bar x_n - \hat x_n \rightarrow 0$となる．  
+
+より厳密には，積率母関数の性質を利用する．まず以下を定義する．
+
+$$
+\begin{aligned}
+Y_i &= \frac{X_i = \mu}{\sigma},\\
+Z_n &= \frac{1}{\sqrt n} \sum_{i=1}^{n} Y_i = \frac{\bar X_n - \mu}{\sigma/\sqrt n}.
+\end{aligned}
+$$
+
+$Z_n$の積率母関数を$Y_i$の積率母関数を用いて
+
+$$
+\begin{aligned}
+M_{Z_n}(s) &= \left \{ M_Y(s/\sqrt n) \right\}^n \\
+&= \left\{ M_Y(0) + M'_Y(0) \frac{s}{\sqrt n} + M''_Y(0) \frac{s^2}{2n} + o(n^{-1}) \right\}^n \\
+&= \left \{ 1 + \frac{s^2}{2n} + o(n^{-1})  \right\}^n \\
+&= \exp \left[ n \log \left \{ 1 + \frac{s^2}{2n} + o(n^{-1})  \right\}  \right] \\
+& \rightarrow \exp \left( \frac{s^2}{2} \right) \  {\rm as} \hspace{3mm} n \rightarrow \infty.
+\end{aligned}
+$$
+
+この最後の形が$N(0,1)$の積率母関数の形と一致する．
 
 
+# 大数の法則：Chebyshev, Jensen and the law of large numbers  
+
+## チェビシェフの不等式：Chebyshev's inequality  
+確率変数$X$と2次のモーメント$E(X^2)$が有限($<\infty$)であるとする．このとき
+
+$$
+\begin{aligned}
+{\rm Pr}(|X| \ge a) \le \frac{E(X^2)}{a^2}.
+\end{aligned}
+$$
+
+(証明)　　
+期待値の定義より
+
+$$
+\begin{aligned}
+E(X^2) &= E(X^2 | a \le |X|) {\rm Pr}(a \le |X|) + E(X^2 | a > |X|) {\rm Pr}(a > |X|)
+\end{aligned}
+$$
+
+とできる．右辺の2つの項は非負であるので，$E(X^2) \ge E(X^2 | a \le |X|){\rm Pr}(a \le |X|)$が成り立つ．しかし，もし$a \le |X|$であれば，明らかに$a^2 \le E(X^2 | a \le |X|)$であり，
+$E(X^2) \ge a^2 {\rm Pr}(|X| \ge a)$となる．これより上式は示された
 
 
+## 大数の法則：The law of large numbers  
+平均が$\mu$で，$E(|X_i|) < \infty$であるような分布に従う互いに独立な$n$個のの確率変数$X_1, X_2,\ldots,X_n$を考える．$\bar X_n = \sum_{i=1}^{n} X_i/n$としたとき．任意の$\epsilon$に対して，
+
+$$
+{\rm Pr}\left( \lim_{n \rightarrow \infty} |\bar X_n - \mu| < \epsilon \right) = 1
+$$
+
+が成り立つ．このとき，$\bar X_n$は$\mu$に概収束するという．これを大数の強法則という．  
+また，仮定として${\rm var}(X_i) = \sigma^2 < \infty$を加えた時，次が成り立つ．
+
+$$
+\lim_{n\rightarrow\infty} {\rm Pr}\left( |\bar X_n - \mu | \ge \epsilon \right) = 0,
+$$
+
+これを大数の弱法則と呼ぶ．この時，$X_n$は$\mu$に確率的に収束する．この証明は以下のような形で示される．
+
+$$
+\begin{aligned}
+{\rm Pr}(|\bar X_n - \mu| \ge \epsilon) & \le \frac{E(\bar X_n - \mu)^2}{\epsilon^2} \\
+&= \frac{{\rm var}(\bar X_n)}{\epsilon^2} \\
+&= \frac{\sigma^2}{n \epsilon^2}
+\end{aligned}
+$$
+
+最後の式を見ると，これは$n\rightarrow\infty$で$0$に収束する．この不等式をチェビシェフの不等式という．ちなみに互いに独立という条件は${\rm var}(\bar X_n) = \sigma^2/n$という等式が成り立つことを保証している．
 
 
+## イェンセンの不等式：Jensen's inequality  
+イェンセンの不等式とは，任意の確率変数$X$と凸な関数$c$について，
+
+$$
+c\{E(X)\} \ge E\{ c(X) \}
+$$
+が成り立つという定理である．
+
+この証明をするために，まずは確率変数を離散型と仮定する．ある下に凸な関数$c$があって，
+$$
+c(w_1 x_1 + w_2 x_2) \ge w_1c(x_1) + w_2 c(x_2) \tag{18.1}
+$$
+
+を満たすような任意の非負の数$w_1, w_2$を考える．ただし，$w_1 + w_2 = 1$を満たす．この時，
+
+$$
+c\left( \sum_{i=1}^{n-1} w'_i x_i \right) \ge \sum_{i=1}^{n-1} w'_i c(x_i) \tag{18.2}
+$$
+
+ここで非負の定数$w'_0$について$\sum_{i=1}^{n-1}w'_i = 1$として，上式が成り立つとする．仮定を満たすような$w'_i$の任意の組を考えると，
+
+$$
+  \begin{aligned}
+    c\left( \sum_{i=1}^{n} w_i x_i   \right) &= c\left( (1-w_n) \sum_{i=1}^{n-1} \frac{w_ix_i}{1-w_n} + w_n x_n  \right) \\
+    & \ge (1-w_n) c \left( \sum_{i=1}^{n-1} \frac{w_i x_i}{1 - w_n} + w_n c(x_n)  \right)
+  \end{aligned} \tag{18.3}
+$$
+
+が成り立つ．ここで最後の不等式は式(18.1)を用いた．また$\sum_{i=1}^{n} w_i = 1$より，$\sum_{i=1}^{n-1}w_i/(1-w_n) = 1$が成り立つ．式$(18.2), (18.3)$の結果を用いて 
+
+$$
+\begin{aligned}
+  c \left( \sum_{i=1}^{n-1} \frac{w_i x_i}{1-w_n} \right) \ge \sum_{i=1}^{n-1} \frac{w_i c(x_i)}{1 - w_n}
+\end{aligned}
+$$
+より
+
+$$
+\begin{aligned}
+  c \left( \sum_{i=1}^{n} w_i x_i \right) \ge \sum_{i=1}^{n} w_i c(x_i)
+\end{aligned}
+$$
+
+を得る．
+
+$w_i = f(x_i)$とし，$f(x_i)$は離散型の確率変数$X$のp.d.fとすると、$c[E(X)] \ge E[c(X)]$は直ちに従う．連続型の場合は積分の形式にする必要があるが，同様に成り立つ．
+
+# 統計量  
+一般に統計量とは確率変数の関数である．また，統計量そのものも確率変数である．よく用いられる標本平均と標本分散を紹介する．まず，データセットとして$x_1, x_2, \ldots, x_n$が与えられたとする．この時
+
+$$
+\begin{aligned}
+\bar x &= \frac{1}{n}\sum_{i=1}^{n} x_i, \\
+s^2 &= \frac{1}{n-1}\sum_{n-1}^{1} (x_i - \bar x)^2
+\end{aligned}
+$$
+
+をそれぞれ標本平均，標本分散という．データは実現値として与えられ，標本平均，標本分散も実現値として得られるが，これらの統計量は確率変数同士の演算によって得られていることから，明らかに確率的な振る舞いをすることがわかる．
+
+$t(\bf x)$という統計量が与えられた時，$\bf x$のp.d.fは次のように表せる．
+
+$$
+f_{\theta} ({\bf x}) = h({\bf x}) g_{\theta}\{t({\bf x}) \}
+$$
+
+ここで$h$は$\boldsymbol \theta$に依存しない．また$g$は$t(\bf x)$を通して$\bf x$にのみ依存する．このような統計量を$\boldsymbol \theta$に対する十分統計量と呼ぶ．その意図するところは，推定したいパラメーター$\boldsymbol \theta$に対する全ての情報が$t(\bf x)$を通して$\bf x$から得られているという意味である．ここで使う'情報'という言葉のより詳しい定義については４章で扱う．また，十分という点については，$t(\bf x)$が与えられた下での$\bf x$の分布が$\boldsymbol \theta$に依存しないことを表している．
+
+# Exercises  
 
 
 

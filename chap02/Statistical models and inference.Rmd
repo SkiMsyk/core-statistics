@@ -1,0 +1,62 @@
+---
+title: "統計モデルと推測：Statistical models and inference"
+author: "Masayuki Sakai"
+date: "yyyy/mm/dd"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: true
+    toc_depth: 2
+    number_section: true
+  always_allow_html: yes
+header-includes: 
+  - \usepackage{bookmark} 
+  - \usepackage{xltxtra} 
+  - \usepackage{zxjatype} 
+  - \usepackage[ipa]{zxjafont} 
+  - \usepackage{mathspec}
+  - \usepackage{amsthm}
+  - \usepackage{indentfirst} # first paragraphのインデントを有効化（英文はインデントが不要のため）
+  - \parindent = 1em         # インデント（字下げ）を1文字に設定
+  - \usepackage{float} # 図の位置指定（fig.pos）をする場合使う
+  - \usepackage{bm}
+
+---
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{assumption}{Assumption}
+
+```{r, message=FALSE, warning=FALSE, error=FALSE}
+require(tidyverse)
+require(gridExtra)
+require(ggthemes)
+```
+
+統計学はデータから情報を抽出することを目的としている．特に，ここでいう情報とはデータが生成されるメカニズムに関するものを意味する．この試みにおける課題として以下2つがあげられる．
+
+1. データから知りたい何かを推測すること自体が簡単ではないこと．またそれをデータからそもそも推測できるのかも断定が難しい．
+2. 多くのデータはその一部に不確実性を有していること．  
+
+もし，データの収集過程をなんども繰り返すことができたとしても，各回で全く同じデータが取れることはないだろう．これがまさに２個目の不確実性である．  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
